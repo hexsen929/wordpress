@@ -1,9 +1,16 @@
 <?php
+/**
+ * 前端附件管理 - 用户中心和作者相册功能
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 // 挂钩用户中心侧边栏按钮
-function zib_tab_content_upimg($buttons) {
+function mrhe_attachment_user_center_button($buttons) {
     // 检查功能是否启用
-    if (!zibll_plugin_option('attachment_manager_enable', true)) {
+    if (!_mrhe('attachment_manager_s')) {
         return $buttons;
     }
     
@@ -16,44 +23,42 @@ function zib_tab_content_upimg($buttons) {
 
     return $buttons;
 }
-add_filter('zib_user_center_page_sidebar_button_2_args', 'zib_tab_content_upimg', 20, 1);
+add_filter('zib_user_center_page_sidebar_button_2_args', 'mrhe_attachment_user_center_button', 20, 1);
 
-// 注册页面
-function zibll_plugin_get_main_tab_nav($tabs_array) 
-{
+// 注册用户中心页面 Tab
+function mrhe_attachment_user_center_tab($tabs_array) {
     // 检查功能是否启用
-    if (!zibll_plugin_option('attachment_manager_enable', true)) {
+    if (!_mrhe('attachment_manager_s')) {
         return $tabs_array;
     }
     
-	$tabs_array['imgmanage'] = array(
+    $tabs_array['imgmanage'] = array(
         'title'    => '附件管理',
         'nav_attr' => 'drawer-title="附件管理"',
-        'class'  => 'user-pay-statistical mb20',
+        'class'    => 'user-pay-statistical mb20',
         'loader'   => str_repeat('<div class="posts-item card "><div class="item-thumbnail"><div class="radius8 item-thumbnail placeholder"></div> </div></div>', 16),
-        'query'  => array('action' => 'zibll_plugin_imgmanage_ajax'),
-	);
-	return $tabs_array;
+        'query'    => array('action' => 'mrhe_attachment_ajax'),
+    );
+    return $tabs_array;
 }
-
-add_filter('user_ctnter_main_tabs_array', 'zibll_plugin_get_main_tab_nav');
+add_filter('user_ctnter_main_tabs_array', 'mrhe_attachment_user_center_tab');
 
 // —— 作者页：添加"个人相册"Tab ——
-function zib_add_author_album_tab($tabs_array, $author_id)
-{
+function mrhe_attachment_author_album_tab($tabs_array, $author_id) {
     // 检查总开关
-    if (!zibll_plugin_option('attachment_manager_enable', true)) {
+    if (!_mrhe('attachment_manager_s')) {
         return $tabs_array;
     }
     
     // 检查作者相册开关
-    if (!zibll_plugin_option('author_album_enable', true)) {
+    if (!_mrhe('author_album_enable', true)) {
         return $tabs_array;
     }
+
     // 为作者主内容添加一个"相册"标签，并展示数量
     global $wpdb;
     $is_super_admin = is_super_admin();
-    $display_type   = zibll_plugin_option('author_album_type', 'image_video');
+    $display_type   = _mrhe('author_album_type', 'image_video');
 
     if ($is_super_admin) {
         // 管理员：显示全站所有附件数量
@@ -96,20 +101,19 @@ function zib_add_author_album_tab($tabs_array, $author_id)
     );
     return $tabs_array;
 }
-add_filter('author_main_tabs_array', 'zib_add_author_album_tab', 10, 2);
+add_filter('author_main_tabs_array', 'mrhe_attachment_author_album_tab', 10, 2);
 
 // —— 作者页：相册内容渲染 ——
-function zib_main_author_tab_content_album()
-{
+function mrhe_attachment_author_album_content() {
     global $wp_query, $wpdb;
 
     // 检查总开关
-    if (!zibll_plugin_option('attachment_manager_enable', true)) {
+    if (!_mrhe('attachment_manager_s')) {
         return '';
     }
 
     // 检查作者相册开关
-    if (!zibll_plugin_option('author_album_enable', true)) {
+    if (!_mrhe('author_album_enable', true)) {
         return '';
     }
 
@@ -124,7 +128,7 @@ function zib_main_author_tab_content_album()
     // 分页与每页数量
     $paged = isset($_GET['album_paged']) ? (int) $_GET['album_paged'] : 1;
     if ($paged < 1) $paged = 1;
-    $per_page = (int) zibll_plugin_option('img_list_number', 16);
+    $per_page = (int) _mrhe('attachment_list_number', 16);
     if ($per_page < 1) $per_page = 16;
 
     // 构建查询参数：管理员查看全部附件，普通用户按设置显示图片/视频/两者
@@ -141,7 +145,7 @@ function zib_main_author_tab_content_album()
     } else {
         // 非管理员：限制作者，并根据设置过滤mime类型
         $args['author'] = $author_id;
-        $display_type   = zibll_plugin_option('author_album_type', 'image_video');
+        $display_type   = _mrhe('author_album_type', 'image_video');
         if ($display_type === 'image') {
             $args['post_mime_type'] = 'image';
         } elseif ($display_type === 'video') {
@@ -163,7 +167,7 @@ function zib_main_author_tab_content_album()
             $thumb    = wp_get_attachment_image_src($att_id, 'thumbnail');
             $full     = wp_get_attachment_image_src($att_id, 'full');
             $title    = get_the_title($att_id);
-            $size_txt = zibll_plugin_format_file_size($att_id);
+            $size_txt = mrhe_attachment_format_file_size($att_id);
 
             $html .= '<posts class="posts-item card ajax-item">';
             $html .= '<div class="item-thumbnail imgbox-container">';
@@ -172,15 +176,13 @@ function zib_main_author_tab_content_album()
                 $html .= '<img src="' . esc_url($thumb[0]) . '" data-src="' . esc_url($full[0]) . '" alt="' . esc_attr($title) . '" class="fit-cover radius8 lazyloadafter" loading="lazy" imgbox-index="0">';
             } else {
                 // 非图片：显示文件类型图标
-                if (function_exists('zibll_plugin_get_file_type_icon')) {
-                    $svg_icon = zibll_plugin_get_file_type_icon((string)$mime);
-                    $html .= '<div class="file-type-icon" style="display:flex;justify-content:center;align-items:center;font-size:50px;margin:20%">' . $svg_icon . '</div>';
-                }
+                $svg_icon = mrhe_attachment_get_file_type_icon((string)$mime);
+                $html .= '<div class="file-type-icon" style="display:flex;justify-content:center;align-items:center;font-size:50px;margin:20%">' . $svg_icon . '</div>';
             }
             // 操作按钮：查看 + 管理员删除
             $html .= '<div class="but-average" style="z-index:1;position:absolute;bottom:0;width:100%">';
             // 查看按钮：若因权限未返回，则使用弹窗链接兜底
-            $view_link = zibll_plugin_view_link($att_id, 'but c-blue', ' ' . zib_get_svg('view') . '查看', 'a');
+            $view_link = mrhe_attachment_view_link($att_id, 'but c-blue', ' ' . zib_get_svg('view') . '查看', 'a');
             if (empty($view_link)) {
                 $args_view = array(
                     'tag'           => 'a',
@@ -189,7 +191,7 @@ function zib_main_author_tab_content_album()
                     'height'        => 400,
                     'mobile_bottom' => true,
                     'text'          => ' ' . zib_get_svg('view') . '查看',
-                    'query_arg'     => array('action' => 'zibll_plugin_view_modal', 'id' => $att_id),
+                    'query_arg'     => array('action' => 'mrhe_attachment_view_modal', 'id' => $att_id),
                 );
                 $view_link = zib_get_refresh_modal_link($args_view);
             }
@@ -197,9 +199,8 @@ function zib_main_author_tab_content_album()
 
             // 管理员可以删除所有附件（权限由WP控制）
             if ($is_super_admin && current_user_can('delete_post', $att_id)) {
-                if (function_exists('zibll_plugin_delete_link')) {
-                    $html .= zibll_plugin_delete_link($att_id, 'but c-red', '<i class="fa fa-trash-o" aria-hidden="true"></i>删除', 'a');
-                } else {
+                $delete_link = mrhe_attachment_delete_link($att_id, 'but c-red', '<i class="fa fa-trash-o" aria-hidden="true"></i>删除', 'a');
+                if (empty($delete_link)) {
                     // 选项禁用时的降级方案：直接创建刷新弹窗链接
                     $args_link = array(
                         'tag'           => 'a',
@@ -208,9 +209,11 @@ function zib_main_author_tab_content_album()
                         'height'        => 240,
                         'mobile_bottom' => true,
                         'text'          => '<i class="fa fa-trash-o" aria-hidden="true"></i>删除',
-                        'query_arg'     => array('action' => 'zibll_plugin_delete_modal', 'id' => $att_id),
+                        'query_arg'     => array('action' => 'mrhe_attachment_delete_modal', 'id' => $att_id),
                     );
                     $html .= zib_get_refresh_modal_link($args_link);
+                } else {
+                    $html .= $delete_link;
                 }
             }
             $html .= '</div>'; // 操作按钮结束
@@ -231,7 +234,7 @@ function zib_main_author_tab_content_album()
         // 管理员：全站所有附件数量
         $total_items = (int) $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->posts WHERE post_type='attachment' AND post_status='inherit'");
     } else {
-        $display_type = zibll_plugin_option('author_album_type', 'image_video');
+        $display_type = _mrhe('author_album_type', 'image_video');
         if ($display_type === 'image') {
             $total_items = $wpdb->get_var(
                 $wpdb->prepare(
@@ -262,7 +265,7 @@ function zib_main_author_tab_content_album()
 
     // 分页：沿用主题的AJAX分页风格（路由模式，ajax_url传false）
     $ajax_url = false;
-    if (zibll_plugin_option('paging_ajax_s', true)) {
+    if (_mrhe('paging_ajax_s', '1') === '1') {
         $html .= zib_get_ajax_next_paginate($total_items, $paged, $per_page, $ajax_url, 'text-center theme-pagination ajax-pag', 'next-page ajax-next', '', 'album_paged');
     } else {
         $html .= zib_get_ajax_number_paginate($total_items, $paged, $per_page, $ajax_url, 'ajax-pag', 'next-page ajax-next', 'album_paged');
@@ -270,5 +273,5 @@ function zib_main_author_tab_content_album()
 
     return $html;
 }
-add_filter('main_author_tab_content_album', 'zib_main_author_tab_content_album');
+add_filter('main_author_tab_content_album', 'mrhe_attachment_author_album_content');
 

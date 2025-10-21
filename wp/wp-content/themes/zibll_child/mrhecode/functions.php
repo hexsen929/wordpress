@@ -21,6 +21,9 @@ $require_once = array(
 	'mrhecode/function-mrhe',
 	'mrhecode/user-center-functions',
 	// 'mrhecode/auth-management-functions', // 已移到插件 mrhe-auth-server
+	'mrhecode/attachment/attachment-manager',  // 前端附件管理功能
+	'mrhecode/attachment/user',                // 用户中心和作者相册
+	'mrhecode/attachment/options',             // 前端附件管理设置
 );
 
 foreach ($require_once as $require) {
