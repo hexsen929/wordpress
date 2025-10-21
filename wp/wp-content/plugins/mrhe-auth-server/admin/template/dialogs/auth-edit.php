@@ -20,7 +20,9 @@ if (!defined('ABSPATH')) {
     v-model="editDialogVisible"
     title="编辑授权"
     width="700px"
-    :close-on-click-modal="false">
+    top="8vh"
+    :close-on-click-modal="false"
+    :destroy-on-close="true">
 
     <el-form
         ref="editFormRef"

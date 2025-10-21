@@ -40,8 +40,14 @@ if (!defined('ABSPATH')) {
             </div>
         </template>
         <div class="quick-actions-content">
-            <el-button type="success" @click="menuGo('/list')" size="large">查看授权列表</el-button>
-            <el-button type="info" @click="refreshStats" size="large">刷新统计数据</el-button>
+            <el-button type="success" @click="menuGo('/list')" size="large">
+                <el-icon><List /></el-icon>
+                查看授权列表
+            </el-button>
+            <el-button type="info" @click="refreshStats" size="large" :loading="loading">
+                <el-icon><Refresh /></el-icon>
+                刷新统计数据
+            </el-button>
         </div>
     </el-card>
 
@@ -65,7 +71,7 @@ if (!defined('ABSPATH')) {
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column prop="product_name" label="产品" width="180">
+            <el-table-column prop="product_name" label="产品" min-width="180">
                 <template #default="scope">
                     <el-tooltip :content="scope.row.product_name" placement="top">
                         <span class="text-ellipsis">{{ scope.row.product_name }}</span>
@@ -92,10 +98,12 @@ if (!defined('ABSPATH')) {
                     {{ formatDate(scope.row.created_at) }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column label="操作" width="140">
                 <template #default="scope">
-                    <el-button type="text" size="small" @click="viewAuth(scope.row)">查看</el-button>
-                    <el-button type="text" size="small" @click="editAuth(scope.row)">编辑</el-button>
+                    <div class="action-buttons">
+                        <el-button type="primary" link size="small" @click="viewAuth(scope.row)">查看</el-button>
+                        <el-button type="primary" link size="small" @click="editAuth(scope.row)">编辑</el-button>
+                    </div>
                 </template>
             </el-table-column>
         </el-table>

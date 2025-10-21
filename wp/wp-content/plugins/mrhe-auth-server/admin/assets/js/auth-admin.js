@@ -605,9 +605,19 @@
                 },
                 
                 // 刷新统计数据
-                refreshStats() {
-                    this.loadStats();
-                    this.loadRecentAuths();
+                async refreshStats() {
+                    this.loading = true;
+                    try {
+                        await Promise.all([
+                            this.loadStats(),
+                            this.loadRecentAuths()
+                        ]);
+                        this.$message.success('统计数据已刷新');
+                    } catch (error) {
+                        this.$message.error('刷新失败：' + error.message);
+                    } finally {
+                        this.loading = false;
+                    }
                 },
 
                 // 复制授权码

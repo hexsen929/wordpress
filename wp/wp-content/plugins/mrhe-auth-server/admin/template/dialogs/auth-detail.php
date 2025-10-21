@@ -20,7 +20,9 @@ if (!defined('ABSPATH')) {
     v-model="detailDialogVisible"
     title="授权详情"
     width="900px"
-    :close-on-click-modal="false">
+    top="5vh"
+    :close-on-click-modal="false"
+    :destroy-on-close="true">
 
     <div v-if="currentAuth" class="auth-detail-content">
         <!-- 基本信息 -->
