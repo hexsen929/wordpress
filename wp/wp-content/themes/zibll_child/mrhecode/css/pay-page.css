@@ -1,0 +1,239 @@
+:root {
+    --linear-bg-1: radial-gradient(#ba6187 40%, rgb(144 224 255 / 0%) 60%) -620px -180px no-repeat, radial-gradient(#743fc3d6 33%, rgb(255 203 87 / 0%) 67%) -120px -24px no-repeat, radial-gradient(#b4684e 40%, rgb(144 224 255 / 0%) 70%) -470px 150px no-repeat, #9e4fa9;
+    --linear-bg-2: radial-gradient(#24868994 20%, rgb(134 217 249 / 0%) 60%) -120px -180px no-repeat, radial-gradient(#454faa 33%, rgb(255 203 87 / 0%) 67%) -10px -4px no-repeat, radial-gradient(#7238ae 40%, rgb(144 224 255 / 0%) 70%) -470px 150px no-repeat, #4147b8;
+    --linear-bg-3: radial-gradient(#bb552975 23%, rgb(247 197 86 / 0%) 67% 100%) 385px -24px, radial-gradient(#984cbe 30%, rgb(179 105 248 / 0%) 67% 100%) 122px -120px, radial-gradient(#661cac 15%, rgb(134 219 252 / 0%) 50% 100%) -620px 0, radial-gradient(#383d9ff5 25%, rgb(132 215 247 / 0%) 50% 100%) 520px -250px, #6841c0;
+    --linear-bg-4: radial-gradient(#3a7ebe 20%, rgb(134 217 249 / 0%) 60%) -100px -300px no-repeat, radial-gradient(#405ed6 13%, rgb(255 203 87 / 0%) 50%) 300px -124px no-repeat, radial-gradient(#684ec8 40%, rgb(144 224 255 / 0%) 70%) 40px 18px no-repeat, #246d79;
+    --linear-bg-5: radial-gradient(#865cc2 40%, rgb(144 224 255 / 0%) 60%) -620px -180px no-repeat, radial-gradient(#4956c6 33%, rgb(255 203 87 / 0%) 67%) -120px -24px no-repeat, radial-gradient(#3e77ab 40%, rgb(144 224 255 / 0%) 64%) 100px 150px no-repeat, #1f5b98;
+    --linear-bg-6: radial-gradient(#277367 20%, rgb(134 217 249 / 0%) 60%) -120px -180px no-repeat, radial-gradient(#434ead 33%, rgb(255 203 87 / 0%) 67%) -120px -24px no-repeat, radial-gradient(#5b46a8 40%, rgb(144 224 255 / 0%) 70%) -470px 150px no-repeat, #1b4d89;
+    --linear-bg-7: radial-gradient(#29843fba 23%, rgb(247 197 86 / 0%) 67% 100%) -285px -24px, radial-gradient(#365692 0, rgb(251 63 72 / 0%) 60% 100%) -40px 290px, #29727b;
+    --linear-bg-8: radial-gradient(#c75c6e 23%, rgb(247 197 86 / 0%) 67% 100%) -285px -24px, radial-gradient(#bf7830 25%, rgb(132 215 247 / 0%) 50% 100%) 520px -250px, #b4663d;
+    --linear-bg-9: radial-gradient(#4776c3 40%, rgb(144 224 255 / 0%) 60%) -235px -380px no-repeat, radial-gradient(#6e4cac 40%, rgb(144 224 255 / 0%) 70%) 100px 250px no-repeat, #5c5bdf;
+    --linear-bg-10: radial-gradient(#b06553 23%, rgb(247 197 86 / 0%) 67% 100%) -285px -24px, radial-gradient(#9e4353 0, rgb(251 63 72 / 0%) 60% 100%) -540px 90px, radial-gradient(#8e43b6 30%, rgb(179 105 248 / 0%) 67% 100%) -122px -120px, #a75375;
+
+    --linear-bg-1m: linear-gradient(135deg, #2ea2aa 0%, #5038c8 100%);
+    --linear-bg-2m: linear-gradient(135deg, #3f41a7 0%, #27acd1 100%);
+    --linear-bg-3m: linear-gradient(135deg, #9971d3 0%, #4538c8 100%);
+    --linear-bg-4m: linear-gradient(110deg, #6936b3 0%, #228382 100%);
+    --linear-bg-5m: linear-gradient(117deg, #e987f2 0%, #6f2d94 100%);
+    --linear-bg-6m: linear-gradient(117deg, #845eea 0%, #cd3e6f 100%);
+    --linear-bg-7m: linear-gradient(117deg, #e29a78 0%, #ce5656 100%);
+    --linear-bg-8m: linear-gradient(117deg, #77ad5e 0%, #20778f 100%);
+    --linear-bg-9m: linear-gradient(117deg, #51a364 0%, #166e9e 100%);
+    --linear-bg-10m: linear-gradient(117deg, #dc3576 0%, #1b80b7 100%);
+}
+
+.product-container {
+    margin-top: -21px;
+    opacity: 1 !important;
+    transition: opacity .5s;
+}
+
+.countdown-activity {
+    padding: 20px;
+    background: linear-gradient(96deg, #fd8f70 0%, #fc3d3d 100%);
+    color: #fff;
+    justify-content: center;
+    display: flex;
+    font-size: 18px;
+    line-height: 1.4;
+    justify-content: space-evenly !important;
+}
+
+.activity-content {
+    margin-right: 10px;
+    flex-wrap: wrap;
+    max-width: calc(30% + 100px);
+}
+
+.activity-title {
+    font-size: 1.5em;
+    font-weight: bold;
+
+}
+
+.countdown-content {
+    flex-wrap: wrap;
+    padding: .2em .2em .2em 1em !important;
+    flex-shrink: 0;
+}
+
+.countdown-desc {
+    margin-right: 10px;
+}
+
+.product-box-mrhe {
+    padding: 60px 0;
+    color: #fff;
+    margin-bottom: 20px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #88c0fd 10%, #0757af 100%);
+}
+
+.product-background {
+    /**animation: hue 100s infinite linear; */
+    background: linear-gradient(135deg, #28b1bb 0%, #5038c8 100%);
+}
+
+@-webkit-keyframes hue {
+    from {
+        -webkit-filter: hue-rotate(0)
+    }
+
+    to {
+        -webkit-filter: hue-rotate(-360deg)
+    }
+}
+
+@keyframes hue {
+    from {
+        -webkit-filter: hue-rotate(0)
+    }
+
+    to {
+        -webkit-filter: hue-rotate(-360deg)
+    }
+}
+
+.product-box-mrhe .product-row {
+    padding: 0 20px;
+    max-width: 1400px;
+    margin: auto;
+}
+
+.product-row .payrow-6 {
+    padding: 0 10px;
+    display: inline-block;
+    vertical-align: middle;
+    width: calc(50%);
+}
+
+.more-but {
+    margin-top: 30px;
+}
+
+.more-but .but.hollow {
+    margin: 0 10px;
+    padding: .5em 1.5em;
+    margin: 0 010px;
+}
+
+.more-but .but.hollow:hover {
+    color: #555;
+}
+
+.pay-content {
+    max-width: 400px;
+    margin: auto;
+}
+
+.product-header {
+    font-size: 50px;
+    letter-spacing: .1em;
+}
+
+.product-doc {
+    opacity: .8;
+    margin: 20px 0;
+}
+
+.pay-mark {
+    font-size: .6em;
+}
+
+.original-price.ml10 {
+    position: relative;
+    padding: 0 5px;
+    font-size: 18px;
+    opacity: .7;
+}
+
+.product-pay {
+    margin: 20px 0;
+}
+
+.product-pay .but {
+    padding: .5em 2em;
+    margin: 0;
+}
+
+.product-pay .but+.but {
+    margin-left: 20px;
+}
+
+.product-details {
+    background: rgba(0, 0, 0, 0.1);
+    opacity: .6;
+    max-width: 300px;
+    text-align: left;
+}
+
+
+@media (max-width:768px) {
+
+    .countdown-activity.flex {
+        font-size: 13px;
+        padding: 12px;
+    }
+
+    .activity-content.flex {
+        display: block;
+    }
+
+    .countdown-content.flex {
+        display: block;
+        background: unset;
+    }
+
+    .countdown-desc {
+        margin-bottom: 5px;
+        margin-right: 0;
+    }
+
+    .product-box-mrhe {
+        padding: 10px 0;
+    }
+
+    .product-box-mrhe .product-row {
+        padding: 0;
+    }
+
+
+    .product-doc {
+        margin: 10px 0;
+    }
+
+    .more-but {
+        margin-top: 18px;
+    }
+
+    .product-box-mrhe .product-row {
+        text-align: center;
+    }
+
+    .product-row .payrow-6 {
+        padding: 10px;
+        width: 100%;
+    }
+
+    .payrow-6.payrow-left {
+        margin-bottom: 20px;
+        padding: 0;
+        margin-top: -10px;
+    }
+
+    .payrow-6.payrow-left .radius8 {
+        border-radius: 0;
+    }
+
+    .product-details {
+        margin: auto;
+    }
+
+
+    .product-pay .cashier-link {
+        width: 70%;
+        border-radius: 100px;
+        padding: 0.7em 2em;
+    }
+
+}

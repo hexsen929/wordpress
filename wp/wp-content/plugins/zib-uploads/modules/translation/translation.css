@@ -1,0 +1,19 @@
+/**
+ * 翻译功能样式文件 - 与子主题保持一致，只添加必要的增强样式
+ */
+
+/* 翻译浮动按钮样式优化 - 与子主题保持一致 */
+/* 多语言切换样式优化 */
+.translation-dropdown {
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    bottom: auto !important;
+    /* right: 70px !important; */
+    /* left: auto !important; */
+}
+
+.float-btn.newadd-btns .drop-newadd.translation-dropdown::before {
+    left: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%) rotate(45deg) !important;
+}

@@ -1,0 +1,750 @@
+<?php
+/*
+ * @Author        : Qinver
+ * @Url           : zibll.com
+ * @Date          : 2021-10-09 22:46:56
+ * @LastEditTime : 2025-07-25 15:20:20
+ * @Email         : 770349780@qq.com
+ * @Project       : Zibll子比主题
+ * @Description   : 授权管理功能模块
+ * @Read me       : 感谢您使用子比主题，主题源码有详细的注释，支持二次开发。
+ * @Remind        : 使用盗版主题会存在各种未知风险。支持正版，从我做起！
+ */
+
+// 防止直接访问
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * 授权管理功能相关
+ */
+
+// 添加授权管理标签页
+function mrhe_user_ctnter_main_tabs_array_filter_product($tabs_array)
+{
+    $tabs_array['product'] = array(
+        'title'         => '授权管理',
+        'nav_attr'      => 'drawer-title="产品授权"',
+        'content_class' => 'author-user-con',
+        'loader'   => '<div class="zib-widget"><i class="placeholder s1"></i><p class="placeholder t1"></p><p style="height: 110px;" class="placeholder k1"></p><p class="placeholder k2"></p><p style="height: 110px;" class="placeholder k1"></p><p class="placeholder t1"></p><i class="placeholder s1"></i><i class="placeholder s1 ml10"></i></div>',
+    );
+
+    if (current_user_can('manage_options')) {
+        $tabs_array['autproduct'] = array(
+            'title'         => '操作授权',
+            'nav_attr'      => 'drawer-title="操作授权"',
+            'content_class' => 'author-user-con',
+            'loader'   => '<div class="zib-widget"><i class="placeholder s1"></i><p class="placeholder t1"></p><p style="height: 110px;" class="placeholder k1"></p><p class="placeholder k2"></p><p style="height: 110px;" class="placeholder k1"></p><p class="placeholder t1"></p><i class="placeholder s1"></i><i class="placeholder s1 ml10"></i></div>',
+        );
+    }
+
+    return $tabs_array;
+}
+add_filter('user_ctnter_main_tabs_array', 'mrhe_user_ctnter_main_tabs_array_filter_product', 20);
+
+// 添加授权管理侧边栏卡片
+function mrhe_user_center_page_sidebar_custom_html($con)
+{
+    $user_id = get_current_user_id();
+    $class = ''; // 初始化$class变量
+    if (!$user_id) {
+        $class = ' signin-loader';
+    }
+    $tabs_array = apply_filters('user_ctnter_main_tabs_array', array());
+    $title = $tabs_array['product']['title'] ?? '产品授权';
+    $custom_html = '
+        <div class="colorful-bg jb-cyan zib-widget mb10-sm' . $class . '">
+            <div class="colorful-make" style="transform: rotate(-28deg) scale(.8);"></div>
+            <div class="flex ab c jsb">
+                            <div class="">
+                    <div class="flex ac">
+                        <b class="em14">mrhe主题</b>
+                            </div>
+                    <div style="" class="em09 opacity8">更优雅的wordpress主题</div>
+                    <a href="javascript:;" data-onclick="[data-target=\'#user-tab-product\']" class="mt6 but radius  jb-cyan px12 p2-10">' . $title . '<i style="margin:0 0 0 6px;" class="fa fa-angle-right em12"></i></a>
+                    <a href="javascript:;" data-onclick="[data-target=\'#user-tab-autproduct\']" class="mt6 but radius  jb-yellow px12 p2-10">操作授权<i style="margin:0 0 0 6px;" class="fa fa-angle-right em12"></i></a>
+                        </div>
+                <span class="avatar-img mr10 mt3" style="--this-size: 59px;">
+                    <img alt="mrhe主题" src="//cravatar.cn/avatar/fbacea24f9dbfd4a258604cf4e69bf49" class="avatar">
+                </span>
+            </div>
+        </div>';
+
+    $con .= $custom_html;
+    return $con;
+}
+add_filter('user_center_page_sidebar', 'mrhe_user_center_page_sidebar_custom_html');
+
+// 清理用户授权页面缓存
+function mrhe_clear_user_auth_cache($user_id)
+{
+    $cache_key = 'mrhe_user_auth_content_' . $user_id;
+    wp_cache_delete($cache_key, 'mrhe_auth');
+}
+add_action('mrhe_auth_updated', 'mrhe_clear_user_auth_cache');
+add_action('mrhe_domain_updated', 'mrhe_clear_user_auth_cache');
+
+// 产品授权页面内容
+function zib_main_user_tab_content_product()
+{
+    $user    = wp_get_current_user();
+    $user_id = isset($user->ID) ? (int) $user->ID : 0;
+
+    if (!$user_id) {
+        return zib_get_ajax_ajaxpager_one_centent('<div class="zib-widget"><div class="text-center"><p class="muted-2-color">请先登录</p></div></div>');
+    }
+
+    // 添加缓存机制，避免重复查询
+    $cache_key = 'mrhe_user_auth_content_' . $user_id;
+    $cached_content = wp_cache_get($cache_key, 'mrhe_auth');
+    
+    if ($cached_content !== false) {
+        return $cached_content;
+    }
+
+    // 获取用户的所有授权产品（只返回启用授权的产品）
+    $auth_orders = mrhe_get_user_theme_orders($user_id, true);
+
+    if (empty($auth_orders)) {
+        $no_orders_html = '<div class="zib-widget">';
+        $no_orders_html .= '<div class="text-center" style="padding:30px 0;">';
+        $no_orders_html .= '<img style="width:280px;opacity: .7;" src="' . ZIB_TEMPLATE_DIRECTORY_URI . '/img/null-order.svg">';
+        $no_orders_html .= '<p style="margin-top:30px;" class="em09 muted-3-color separator">暂无授权订单</p>';
+        $no_orders_html .= '</div>';
+        $no_orders_html .= '<div class="mb20 mt30 text-center">';
+        $no_orders_html .= '<a class="but c-blue padding-lg" href="' . home_url('/pay-mrhe') . '">';
+        $no_orders_html .= '<i class="fa fa-cart-plus fa-fw" aria-hidden="true"></i> 购买主题授权</a>';
+        $no_orders_html .= '</div>';
+        $no_orders_html .= '</div>';
+        
+        // 导入订单卡片
+        $no_orders_html .= '<div class="theme-box user-pay">';
+        $no_orders_html .= '<div class="zib-widget pay-box">';
+        $no_orders_html .= '<div class="box-body theme-box">';
+        $no_orders_html .= '<div class="c-red mb10"><i class="fa fa-angle-double-right em12 mr10"></i><b>导入订单</b></div>';
+        $no_orders_html .= '<div class="muted-2-color em09">如果您是通过转账等其它方式购买的mrhe主题，请在下方输入您的授权码以导入订单及授权信息</div>';
+        $no_orders_html .= '</div>';
+        $no_orders_html .= '<form>';
+        $no_orders_html .= '<div class="line-form theme-box">';
+        $no_orders_html .= '<input type="text" name="aut_code" class="line-form-input text-center" tabindex="2" placeholder="请输入授权码">';
+        $no_orders_html .= '<i class="line-form-line"></i>';
+        $no_orders_html .= '</div>';
+        $no_orders_html .= '<div class="box-body text-center">';
+        $no_orders_html .= '<a href="javascript:;" class="but jb-blue radius btn-block padding-lg query-ordery" style="max-width:260px;">提交</a>';
+        $no_orders_html .= '</div>';
+        $no_orders_html .= '<input type="hidden" name="action" value="mrhe_query_autordery">';
+        $no_orders_html .= '</form>';
+        $no_orders_html .= '</div>';
+        $no_orders_html .= '</div>';
+        
+        $result = zib_get_ajax_ajaxpager_one_centent($no_orders_html);
+        wp_cache_set($cache_key, $result, 'mrhe_auth', 300); // 缓存5分钟
+        return $result;
+    }
+
+    // 获取选中的产品（从URL参数或默认第一个）
+    $selected_post_id = isset($_GET['product_id']) ? intval($_GET['product_id']) : 0;
+    
+    // 如果没有选中或选中的产品不存在，默认第一个
+    if (!$selected_post_id || !in_array($selected_post_id, array_column($auth_orders, 'post_id'))) {
+        $selected_post_id = $auth_orders[0]['post_id'];
+    }
+    
+    // 修改缓存键，包含 product_id
+    $cache_key = 'mrhe_user_auth_content_' . $user_id . '_' . $selected_post_id;
+    $cached_content = wp_cache_get($cache_key, 'mrhe_auth');
+    
+    if ($cached_content !== false) {
+        return $cached_content;
+    }
+    
+    // 只获取选中产品的订单
+    $selected_order = null;
+    foreach ($auth_orders as $order) {
+        if ($order['post_id'] == $selected_post_id) {
+            $selected_order = $order;
+            break;
+        }
+    }
+    
+    // 如果没找到选中的订单，使用第一个
+    if (!$selected_order) {
+        $selected_order = $auth_orders[0];
+        $selected_post_id = $selected_order['post_id'];
+    }
+
+    // 批量获取所有授权信息，避免循环中重复查询数据库
+    $all_auth_info = mrhe_get_user_all_auth_info($user_id);
+    
+    // 批量获取所有产品信息，避免循环中重复查询数据库
+    $post_ids = array_column($auth_orders, 'post_id');
+    $post_info = array();
+    
+    if (!empty($post_ids)) {
+        global $wpdb;
+        $posts = $wpdb->get_results(
+            "SELECT ID, post_title, post_name FROM {$wpdb->posts} WHERE ID IN (" . implode(',', array_map('intval', $post_ids)) . ")",
+            ARRAY_A
+        );
+        
+        foreach ($posts as $post) {
+            $post_info[$post['ID']] = array(
+                'title' => $post['post_title'],
+                'permalink' => get_permalink($post['ID']),
+                'slug' => $post['post_name']
+            );
+        }
+    }
+    
+    // 生成产品下拉框（多个产品时才显示）
+    $html = '';
+    if (count($auth_orders) > 1) {
+        $html .= '<div class="zib-widget mb20">';
+        $html .= '<div class="box-body">';
+        $html .= '<div class="flex ac jsb">';
+        $html .= '<label class="muted-2-color mr10"><i class="fa fa-cube mr6"></i>选择产品：</label>';
+        $html .= '<select id="mrhe-product-selector" class="form-control" style="width: auto; max-width: 300px;">';
+        
+        foreach ($auth_orders as $order) {
+            $selected = ($order['post_id'] == $selected_post_id) ? ' selected' : '';
+            $html .= '<option value="' . $order['post_id'] . '"' . $selected . '>' . get_the_title($order['post_id']) . '</option>';
+        }
+        
+        $html .= '</select>';
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '</div>';
+    }
+    
+    // 只显示选中产品的授权信息
+    $order = $selected_order;
+    $post_id = $order['post_id'];
+    
+    // 动态获取 product_id：优先从订单表，后备从产品元数据
+    $product_id = mrhe_get_dynamic_product_id($post_id, $user_id);
+    
+    // 只使用 post_id 作为键查询授权信息
+    $auth_info = $all_auth_info[$post_id] ?? array(
+            'post_id' => $post_id,
+            'product_id' => $product_id,
+            'auth_code' => '',
+            'domains' => array(),
+            'max_domains' => 3,
+            'is_authorized' => 0
+        );
+        
+        $post_data = $post_info[$post_id] ?? array(
+            'title' => '未知产品',
+            'permalink' => '#',
+            'slug' => ''
+        );
+        
+        $is_authorized = $auth_info['is_authorized'] ?? 0;
+        $auth_code = $auth_info['auth_code'] ?? '';
+        $domains = $auth_info['domains'] ?? array();
+        $domain_count = mrhe_count_used_domains($domains);
+        $max_domains = $auth_info['max_domains'] ?? 3;
+        
+        // 订单信息卡片 - 使用预获取的数据，避免数据库查询
+        $order_html = sprintf(
+            '<div class="zib-widget pay-box">
+            <div class="pay-tag abs-center" style="left: auto;right: 0;border-radius: 0 var(--main-radius) 0 var(--main-radius);">订单信息</div>
+            <div>
+                    <div class="mb6"><b><a target="_blank" href="%s">%s</a></b></div>
+                    <div class="meta-time em09 muted-2-color" title="点击复制订单号" data-clipboard-text="%s" data-clipboard-tag="订单号">订单号：<i class="fa fa-files-o mr3"></i>%s</div>
+                    <dd class="meta-time em09 muted-2-color">付款时间：%s<span class="pull-right em12"><span class="pay-mark">价格：￥</span>%s<span class="pay-mark ml10">实付金额：</span><span class="pay-mark">￥</span>%s</span></dd>
+            </div>
+            </div>',
+            esc_url($post_data['permalink']),
+            esc_html($post_data['title']),
+            esc_attr($order['order_num']),
+            esc_html($order['order_num']),
+            esc_html($order['pay_time']),
+            esc_html($order['pay_price']),
+            esc_html($order['pay_price'])
+        );
+        $html .= $order_html;
+        
+        // 授权信息卡片
+        $html .= '<div class="zib-widget pay-box">';
+        $html .= '<div class="pay-tag abs-center" style="left: auto;right: 0;border-radius: 0 var(--main-radius) 0 var(--main-radius);">授权信息</div>';
+        $html .= '<div>';
+        $html .= '<div class="box-body theme-box">';
+        $html .= '<div class="c-red mb10"><i class="fa fa-diamond em12 mr10"></i><b>正版授权</b></div>';
+        $html .= '<div class="muted-2-color em09">您当前可授权<span class="badg c-red badg-sm">' . $max_domains . '</span>个域名，已授权<span class="badg badg-sm c-red">' . $domain_count . '</span>个域名，如需更多域名授权，请与客服联系</div>';
+        $html .= '</div>';
+        $html .= '<form class="abs-right" style="top: 10px;right: 77px;">';
+        $html .= '<a href="javascript:;" style="padding: 5px 10px 2px;border-radius: 0 0 8px 8px;--this-bg: rgba(77, 130, 249, .1);" class="but c-blue-2 em09 refresh-autordery" data-toggle="tooltip" title="" data-original-title="刷新授权数据"><i class="fa fa-refresh" aria-hidden="true"></i>刷新授权</a>';
+        $html .= '<input type="hidden" name="action" value="mrhe_user_refresh_aut">';
+        $html .= '<input type="hidden" name="aut_code" value="' . $auth_code . '">';
+        $html .= '<input type="hidden" name="order_num" value="' . $order['order_num'] . '">';
+        $html .= '<input type="hidden" name="post_id" value="' . $order['post_id'] . '">';
+        $html .= '<input type="hidden" name="product_id" value="' . (!empty($order['product_id']) ? esc_attr($order['product_id']) : 'post_' . $order['post_id']) . '">';
+        $html .= '<input type="hidden" name="_wpnonce" value="' . wp_create_nonce('mrhe_user_refresh_aut') . '">';
+        $html .= '</form>';
+        
+        // 获取封禁状态
+        $is_banned = $auth_info['is_banned'] ?? 0;
+        
+        if ($is_authorized) {
+            if ($is_banned) {
+                // 被封禁：只显示封禁提示，不显示任何授权详细信息
+                $html .= '<div class="text-center mt10 mb10">';
+                $html .= '<div class="c-red mb10">';
+                $html .= '<i class="fa fa-ban mr6"></i><b>您的授权异常 请联系管理员</b>';
+                $html .= '</div>';
+                $html .= '<p class="muted-2-color em09">请联系管理员了解详情</p>';
+                $html .= '</div>';
+            } else {
+                // 正常状态：显示所有授权详细信息
+                // 授权码
+                $html .= '<div class="mb10">';
+                $html .= '<div class="author-set-left">授权码</div>';
+                $html .= '<div class="author-set-right">';
+                $html .= '<b data-toggle="tooltip" title="" data-clipboard-tag="授权码" data-clipboard-text="' . $auth_code . '" class="but c-red clip-aut mr10 mb6" data-original-title="点击复制">' . substr($auth_code, 0, 8) . '**********' . substr($auth_code, -10) . '</b>';
+                $html .= '<a text="' . $auth_code . '" slash-text="' . substr($auth_code, 0, 8) . '**********' . substr($auth_code, -10) . '" class="eye-aut pointer opacity8 mr10"><i class="fa fa-eye"></i></a>';
+                $html .= '<a data-clipboard-tag="授权码" data-clipboard-text="' . $auth_code . '" class="clip-aut pointer opacity8" data-toggle="tooltip" title="" data-original-title="复制授权码"><i class="fa fa-files-o"></i></a>';
+                $html .= '</div>';
+                $html .= '</div>';
+
+                // 授权有效期
+                $html .= '<div class="mb10">';
+                $html .= '<div class="author-set-left">授权有效期</div>';
+                $html .= '<div class="author-set-right"><span class="badg">永久</span></div>';
+                $html .= '</div>';
+
+                // 验证类型
+                $html .= '<div class="mb10">';
+                $html .= '<div class="author-set-left">验证类型</div>';
+                $html .= '<div class="author-set-right"><span class="badg">授权码+域名验证</span></div>';
+                $html .= '</div>';
+
+                // 授权域名
+                $html .= '<div class="mb10">';
+                $html .= '<div class="author-set-left">授权域名</div>';
+                $html .= '<div class="author-set-right">';
+                if (!empty($domains)) {
+                    // 只显示用户实际输入的域名，隐藏赠送的 www 子域名
+                    $display_domains = mrhe_get_display_domains($domains);
+                    foreach ($display_domains as $domain) {
+                        $html .= '<span class="badg mr6 mb6 c-blue">' . $domain . '</span>';
+                    }
+                }
+                $html .= '</div>';
+                $html .= '</div>';
+
+                // 根据domain_count显示不同的按钮
+                $html .= '<div class="text-center mt10 mb10">';
+                if ($domain_count < $max_domains) {
+                    // 未达到最大域名数，只显示"添加授权域名"
+                    $html .= '<a mobile-bottom="true" data-height="400" data-remote="' . admin_url('admin-ajax.php?action=mrhe_aut_add_modal&mrhe_order_num=' . $order['order_num']) . '" class="but mm3 padding-lg jb-blue" href="javascript:;" data-toggle="RefreshModal">添加授权域名</a>';
+                } else {
+                    // 域名已满，只显示"更换授权域名"
+                    $html .= '<a mobile-bottom="true" data-height="400" data-remote="' . admin_url('admin-ajax.php?action=mrhe_aut_replace_modal&mrhe_order_num=' . $order['order_num']) . '" class="but mm3 padding-lg jb-yellow" href="javascript:;" data-toggle="RefreshModal">更换授权域名</a>';
+                }
+                $html .= '</div>';
+            }
+        }
+
+        $html .= '</div>';
+        $html .= '</div>';
+
+        // 资源下载卡片
+        $html .= '<div class="zib-widget pay-box">';
+        $html .= '<div class="pay-tag abs-center" style="left: auto; right: 0; border-radius: 0 var(--main-radius) 0 var(--main-radius);">资源下载</div>';
+        $html .= '<div class="theme-box">';
+        $html .= '<div>';
+        $html .= '<div class="flex ac hh">';
+        
+        // 获取页面设置中的下载资源
+        $download_resources = mrhe_get_download_resources($order['post_id']);
+        
+        if (!empty($download_resources)) {
+            // 每个下载按钮独立包裹（仿照 Zibll 官方风格）
+            foreach ($download_resources as $resource) {
+                $download_url = $resource['link'] ?? '#';
+                $download_name = $resource['name'] ?? '资源下载';
+                $download_icon = $resource['icon'] ?? 'fa fa-download';
+                $download_class = $resource['class'] ?? 'b-theme';
+                $download_more = $resource['more'] ?? '';
+                $copy_key = $resource['copy_key'] ?? '';
+                $copy_val = $resource['copy_val'] ?? '';
+                
+                // 每个按钮独立包裹在 but-download 中
+                $html .= '<div class="but-download flex ac">';
+                $html .= '<a target="_blank" href="' . esc_url($download_url) . '" class="mr10 but ' . esc_attr($download_class) . '">';
+                $html .= '<i class="' . esc_attr($download_icon) . '" aria-hidden="true"></i>' . esc_html($download_name);
+                $html .= '</a>';
+                
+                if (!empty($download_more)) {
+                    if (!empty($copy_key) && !empty($copy_val)) {
+                        // 显示资源备注（不可复制）和点击复制名称（可复制）
+                        $html .= '<span class="badg">' . esc_html($download_more) . '</span>';
+                        $html .= '<span class="badg c-blue" data-clipboard-tag="' . esc_attr($copy_key) . '" data-clipboard-text="' . esc_attr($copy_val) . '" style="cursor: pointer;">' . esc_html($copy_key) . '</span>';
+                    } else {
+                        $html .= '<span class="badg">' . esc_html($download_more) . '</span>';
+                    }
+                }
+                
+                $html .= '</div>'; // 关闭 but-download
+            }
+        } else {
+            // 如果没有配置下载资源，显示默认的下载选项
+            $html .= '<div class="but-download flex ac">';
+            $html .= '<a target="_blank" href="#" class="mr10 but c-blue"><i class="fa fa-download" aria-hidden="true"></i>主题下载</a>';
+            $html .= '<span class="badg">密码：请联系客服</span>';
+            $html .= '</div>';
+            $html .= '<div class="but-download flex ac">';
+            $html .= '<a target="_blank" href="#" class="mr10 but c-green"><i class="fa fa-book" aria-hidden="true"></i>使用文档</a>';
+            $html .= '<span class="badg">在线查看</span>';
+            $html .= '</div>';
+        }
+        
+        $html .= '</div>'; // 关闭 flex ac hh
+        $html .= '</div>'; // 关闭内层 div
+        $html .= '</div>'; // 关闭 theme-box
+        // pay-extra-hide 区域（提示信息、按钮、二维码）
+        $html .= '<div class="pay-extra-hide">';
+        $html .= '<div class="flex hh ac jsa">';
+        $html .= '<div class="mt10 mr20">';
+        $html .= '<div class="ml20">';
+        $html .= '<li class="c-yellow-2 mb6">请严格遵守授权规范，违规使用将做封号处理<a target="_blank" class="focus-color" href="#">【查看详情】</a></li>';
+        $html .= '<li class="c-blue mb6">首次使用请查看<a href="#" target="_blank" class="focus-color">【WordPress搭建教程】</a>、<a href="#" target="_blank" class="focus-color">【主题安装教程及准备】</a></li>';
+        $html .= '<li class="c-blue-2 mb6">更新主题推荐使用一键在线更新<a href="#" target="_blank" class="focus-color">【查看教程】</a></li>';
+        $html .= '<li class="c-yellow">更新主题请务必<b class="c-red">清空浏览器缓存</b>、<b class="c-red">刷新CDN缓存</b></li>';
+        $html .= '</div>';
+        $html .= '<div class="mt10 ml10">';
+        $html .= '<a target="_blank" href="#" class="but c-blue mt6 mr10"><i aria-hidden="true" class="fa fa-cloud-upload"></i>更新日志</a>';
+        $html .= '<a target="_blank" class="but c-blue mt6 mr10" href="#"><i aria-hidden="true" class="fa fa-grav"></i>社区论坛</a>';
+        $html .= '<a target="_blank" class="but c-blue mt6 mr10" href="#"><i aria-hidden="true" class="fa fa-bookmark"></i>主题文档</a>';
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '<div class="text-center mt20 flex0">';
+        $html .= '<div class="c-yellow">';
+        $html .= '<img src="https://oss.zibll.com/zibll.com/2022/11/QQ群二维码新.jpg" style="width: 100px">';
+        $html .= '</div>';
+        $html .= '<div class="mt10">扫码加入正版用户群<div class=""><a class="c-yellow" target="_blank" href="https://jq.qq.com/?_wv=1027&k=S7kr4r0i">QQ群号：744217976</a></div></div>';
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '</div>'; // 关闭 pay-extra-hide
+        $html .= '</div>'; // 关闭 zib-widget pay-box
+
+    $result = zib_get_ajax_ajaxpager_one_centent($html);
+    
+    // 设置缓存，缓存5分钟
+    wp_cache_set($cache_key, $result, 'mrhe_auth', 300);
+    
+    return zib_get_ajax_ajaxpager_one_centent($result);
+}
+add_filter('main_user_tab_content_product', 'zib_main_user_tab_content_product', 20);
+
+// 添加域名授权模态框
+function mrhe_aut_add_modal()
+{
+    $order_num = $_GET['mrhe_order_num'];
+    $user_id = get_current_user_id();
+    
+    $purchase_result = check_order_and_user($order_num);
+    $max_domains = $purchase_result['aut_max_url'];
+    
+    // 处理域名数据 - 使用WordPress标准方法
+    $existing_domains = maybe_unserialize($purchase_result['domain']);
+    if (!is_array($existing_domains)) {
+        $existing_domains = array();
+    }
+    $domain_count = mrhe_count_used_domains($existing_domains);
+?>
+    <div class="mb10 touch">
+        <div class="mr10 inflex em12"><svg class="em14 mr10" aria-hidden="true">
+                <use xlink:href="#icon-vip_2"></use>
+            </svg><b>添加授权</b></div><button class="close" data-dismiss="modal"><svg class="ic-close" aria-hidden="true">
+                <use xlink:href="#icon-close"></use>
+            </svg></button>
+    </div>
+    <div class="padding-10">
+        <p class="muted-2-color">添加授权域名前，请先阅读详细<a class="focus-color" target="_blank" href="https://www.zibll.com/zibll-pay-desc">授权规范</a></p>
+        <ul class="muted-2-color theme-box">
+            <li class="c-red" style="--this-color: #f737a3;"><i class="fa fa-info-circle mr6"></i>授权仅限本人使用，添加非本人名下域名将做封号处理</li>
+            <li class="c-red"><i class="fa fa-info-circle mr6"></i>添加后的域名不能删除，但支持不限次数免费更换</li>
+            <li class="c-red" style="--this-color: #ff6643;"><i class="fa fa-info-circle mr6"></i>如考虑到可能会更换域名请注意在域名过期前提前更换</li>
+        </ul>
+        <div class="muted-color">域名示例:</div>
+        <ul class="muted-2-color theme-box">
+            <li>授权顶级域名：hexsen.com</li>
+            <li>授权二级域名：blog.hexsen.com</li>
+            <li>如果是中文域名，请输入转码后的域名</li>
+            <li>如果有任何疑问，请与客服联系</li>
+        </ul>
+        <form class="pay-form">
+            <?php
+            $remaining_domains = $max_domains - $domain_count;
+
+            for ($i = 0; $i < $remaining_domains; $i++) {
+                echo '<div class="author-set-left">域名 ' . ($i + 1) . '</div>';
+                echo '<div class="author-set-right theme-box">';
+                echo '<input type="input" class="form-control" name="domains[]" value="" placeholder="请输入域名">';
+                echo '</div>';
+            }
+            ?>
+            <div class="box-body text-center nobottom">
+                <a href="javascript:;" class="but jb-blue radius btn-block padding-lg addzibaut" style="max-width:260px;">提交</a>
+            </div>
+            <input type="hidden" name="user_id" value="<?php echo $user_id; ?>">
+            <input type="hidden" name="action" value="mrhe_user_add_aut">
+            <input type="hidden" name="post_id" value="<?php echo $purchase_result['post_id']; ?>">
+            <input type="hidden" name="product_id" value="<?php echo !empty($purchase_result['product_id']) ? esc_attr($purchase_result['product_id']) : 'post_' . $purchase_result['post_id']; ?>">
+            <input type="hidden" name="order_num" value="<?php echo $order_num; ?>">
+            <input type="hidden" name="_wpnonce" value="<?php echo wp_create_nonce('mrhe_user_add_aut'); ?>">
+        </form>
+    </div>
+<?php
+    exit();
+}
+add_action('wp_ajax_mrhe_aut_add_modal', 'mrhe_aut_add_modal');
+
+// 更换域名授权模态框
+function mrhe_aut_replace_modal()
+{
+    $order_num = $_GET['mrhe_order_num'];
+    $user_id = get_current_user_id();
+    
+    $purchase_result = check_order_and_user($order_num);
+    
+    // 处理域名数据 - 使用WordPress标准方法
+    $existing_domains = maybe_unserialize($purchase_result['domain']);
+    if (!is_array($existing_domains)) {
+        $existing_domains = array();
+    }
+    
+    $domain_count = mrhe_count_used_domains($existing_domains);
+?>
+    <div class="mb10 touch">
+        <div class="mr10 inflex em12">
+            <svg class="em14 mr10" aria-hidden="true">
+                <use xlink:href="#icon-vip_2"></use>
+            </svg>
+            <b>更换授权</b>
+        </div>
+        <button class="close" data-dismiss="modal">
+            <svg class="ic-close" aria-hidden="true">
+                <use xlink:href="#icon-close"></use>
+            </svg>
+        </button>
+    </div>
+    <div class="padding-10">
+        <div class="muted-color">更换要求及说明:</div>
+        <ul class="muted-2-color theme-box">
+            <li class="c-red" style="--this-color: #f737a3;">
+                <i class="fa fa-info-circle mr6"></i>授权域名名额添加完之后才能更换域名
+            </li>
+            <li class="c-red">
+                <i class="fa fa-info-circle mr6"></i>更换前域名和新域名所有人为同一人
+            </li>
+            <li class="c-red" style="--this-color: #ff6643;">
+                <i class="fa fa-info-circle mr6"></i>或者更换前域名和新域名备案人为同一人
+            </li>
+            <li class="mb10 em09">
+                如果系统自动审核失败，请准备相关截图及待更换的域名与微信客服联系
+            </li>
+            <li class="">
+                <div class="text-center hide-sm" style="width: 120px;">
+                    <img src="https://cravatar.cn/avatar/fbacea24f9dbfd4a258604cf4e69bf49">
+                    <div class="px12">扫码联系微信客服</div>
+                </div>
+                <a target="_blank" href="https://work.weixin.qq.com/kfid/kfca772106896c80838" class="but c-blue show-sm">
+                    <i class="fa fa-wechat"></i>点击联系微信客服
+                </a>
+            </li>
+        </ul>
+        <?php if ($domain_count > 0) { ?>
+            <form>
+                <div class="mb20">
+                    <div class="mb6">选择需更换域名</div>
+                    <div class="muted-color">
+                        <?php
+                        // 使用 mrhe_get_display_domains() 过滤掉 www 域名
+                        $display_domains = mrhe_get_display_domains($existing_domains);
+                        
+                        if (empty($display_domains)) {
+                            echo '<div class="c-red">没有可更换的域名</div>';
+                        } else {
+                            foreach ($display_domains as $domain) {
+                                $domain_value = is_array($domain) ? $domain['domain'] : $domain;
+                                echo '<label class="badg p2-10 mr10 pointer">';
+                                echo '<input type="radio" name="aut_url" value="' . esc_attr($domain_value) . '"> ' . esc_html($domain_value);
+                                echo '</label>';
+                            }
+                        }
+                        ?>
+                    </div>
+                </div>
+                <div class="mb10">
+                    <div class="mb10">输入新域名</div>
+                    <div class="">
+                        <input class="form-control" name="new_aut_url" type="text" placeholder="请输入新域名">
+                    </div>
+                </div>
+                <div class="box-body text-center nobottom">
+                    <button class="but jb-blue radius btn-block padding-lg wp-ajax-submit">
+                        <i class="fa fa-check" aria-hidden="true"></i>确认提交
+                    </button>
+                </div>
+                <input type="hidden" name="action" value="mrhe_user_replace_aut">
+                <input type="hidden" name="_wpnonce" value="<?php echo wp_create_nonce('mrhe_user_replace_aut'); ?>" />
+                <input type="hidden" name="user_id" value="<?php echo $user_id; ?>">
+                <input type="hidden" name="post_id" value="<?php echo $purchase_result['post_id']; ?>">
+                <input type="hidden" name="product_id" value="<?php echo !empty($purchase_result['product_id']) ? esc_attr($purchase_result['product_id']) : 'post_' . $purchase_result['post_id']; ?>">
+                <input type="hidden" name="order_num" value="<?php echo $order_num; ?>">
+            </form>
+        <?php } else { ?>
+            <div class="mb20">
+                <div class="c-red mb10"><i class="fa fa-info-circle mr6"></i> 抱歉，您当前没有已授权的域名，请先添加域名</div>
+                <div class="box-body text-center nobottom"><?php echo mrhe_get_add_domain_aut_link('jb-blue', '添加授权域名', 'mrhe_aut_add_modal', $order_num) ?></div>
+            </div>
+        <?php } ?>
+    </div>
+<?php
+    exit();
+}
+add_action('wp_ajax_mrhe_aut_replace_modal', 'mrhe_aut_replace_modal');
+
+// 操作授权页面内容
+function zib_main_user_tab_content_autproduct()
+{
+    $form = '111';
+    $html = '' . $form . '';
+    return zib_get_ajax_ajaxpager_one_centent($html);
+}
+add_filter('main_user_tab_content_autproduct', 'zib_main_user_tab_content_autproduct');
+
+// 加载服务端JS文件
+function mrhe_auth_server_load_js()
+{
+    if (get_query_var('user_center')) {
+        wp_enqueue_script('mrhe_auth_server_js', MRHE_AUTH_SERVER_URL . 'assets/js/pay-api.js', array('jquery'), '1.0.0', true);
+    }
+}
+add_action('wp_enqueue_scripts', 'mrhe_auth_server_load_js');
+
+/**
+ * 服务端功能函数
+ */
+
+// 检查订单和用户
+function check_order_and_user($order_num)
+{
+    $user = wp_get_current_user();
+    $user_id = isset($user->ID) ? (int) $user->ID : 0;
+
+    if (!$user_id) {
+        return;
+    }
+
+    // 直接通过 order_num 从数据库查询订单和授权信息
+    global $wpdb;
+    
+    // 1. 从订单表获取订单信息
+    $order = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$wpdb->zibpay_order} 
+         WHERE order_num = %s AND user_id = %d AND status = 1",
+        $order_num,
+        $user_id
+    ), ARRAY_A);
+    
+    if (!$order) {
+        display_error_message('未找到订单信息');
+        wp_die();
+    }
+    
+    // 2. 从授权表获取授权信息
+    $table_name = $wpdb->prefix . 'mrhe_theme_aut';
+    $auth_record = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name 
+         WHERE user_id = %d AND post_id = %d",
+        $user_id,
+        $order['post_id']
+    ), ARRAY_A);
+    
+    if (!$auth_record) {
+        display_error_message('未找到授权信息');
+        wp_die();
+    }
+    
+    // 3. 合并订单信息和授权信息
+    return array_merge($order, array(
+        'status' => 1,
+        'auth_code' => $auth_record['auth_code'],
+        'domain' => $auth_record['domain'],
+        'aut_max_url' => $auth_record['aut_max_url'],
+        'is_authorized' => $auth_record['is_authorized'],
+        'product_id' => $auth_record['product_id']
+    ));
+}
+
+// 显示错误消息函数
+function display_error_message($message)
+{
+    echo '<div class="modal-colorful-header colorful-bg jb-red">
+            <!-- 关闭按钮 -->
+            <button class="close" data-dismiss="modal">
+                <svg class="ic-close" aria-hidden="true">
+                    <use xlink:href="#icon-close"></use>
+                </svg>
+            </button>
+            <!-- 头部样式 -->
+            <div class="colorful-make"></div>
+            <div class="text-center">
+                <div class="em2x">
+                    <i class="fa fa-times-circle-o fa-2x" aria-hidden="true"></i>
+                </div>
+            </div>
+        </div>
+        <div class="em12 text-center c-red" style="padding: 30px 0;">' . $message . '</div>';
+}
+
+// 获取添加域名授权链接
+function mrhe_get_add_domain_aut_link($class = '', $text = '添加/更换授权域名', $action = '', $mrhe_order_num = '')
+{
+    $user_id = get_current_user_id();
+    if (!$user_id) {
+        return;
+    }
+
+    $args = array(
+        'tag'           => 'a',
+        'class'         => 'but mm3 padding-lg ' . $class,
+        'mobile_bottom' => true,
+        'height'        => 400,
+        'text'          => $text,
+        'query_arg'     => array(
+            'action' => $action,
+            'mrhe_order_num' => $mrhe_order_num
+        ),
+    );
+
+    return zib_get_refresh_modal_link($args);
+}
+
+// 获取更换域名授权链接
+function mrhe_get_replace_domain_aut_link($class = '', $text = '更换授权域名', $action = '', $mrhe_order_num = '')
+{
+    $user_id = get_current_user_id();
+    if (!$user_id) {
+        return;
+    }
+
+    $args = array(
+        'tag'           => 'a',
+        'class'         => 'but mm3 padding-lg ' . $class,
+        'mobile_bottom' => true,
+        'height'        => 400,
+        'text'          => $text,
+        'query_arg'     => array(
+            'action' => $action,
+            'mrhe_order_num' => $mrhe_order_num
+        ),
+    );
+
+    return zib_get_refresh_modal_link($args);
+}
