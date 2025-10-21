@@ -15,6 +15,22 @@
 
     // 初始化函数
     function initApp() {
+        // 早期抑制 ResizeObserver 错误
+        const originalError = window.console.error;
+        const originalWarn = window.console.warn;
+
+        window.console.error = (...args) => {
+            const message = args[0]?.toString() || '';
+            if (message.includes('ResizeObserver')) return;
+            originalError.apply(console, args);
+        };
+
+        window.console.warn = (...args) => {
+            const message = args[0]?.toString() || '';
+            if (message.includes('ResizeObserver')) return;
+            originalWarn.apply(console, args);
+        };
+        
         // 检查必要的依赖
         if (typeof Vue === 'undefined' || typeof ElementPlus === 'undefined') {
             console.error('Vue.js 或 Element Plus 未加载');
@@ -642,6 +658,15 @@
         
         // 挂载应用
         app.mount('#mrhe_auth_app');
+        
+        // 全局错误处理
+        window.addEventListener('error', (event) => {
+            if (event.message && event.message.includes('ResizeObserver')) {
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
+            }
+        });
         
         // 隐藏加载遮罩
         setTimeout(() => {

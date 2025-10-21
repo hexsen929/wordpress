@@ -10,6 +10,12 @@
  * @Remind        : 使用盗版主题会存在各种未知风险。支持正版，从我做起！
  */
 
+/* 修复 ResizeObserver 循环问题 */
+.mrhe-auth-admin * {
+    /* 防止 ResizeObserver 循环 */
+    contain: layout style;
+}
+
 /* 主容器 */
 .mrhe-auth-admin {
     background: #f1f1f1;

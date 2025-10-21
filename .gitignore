@@ -35,6 +35,6 @@ npm-debug.log*
 .cursor/
 
 # Cursor rules
-wp/.cursor/rules/
+wp/.cursor/rules/*
 
 claude.md
