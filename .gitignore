@@ -30,3 +30,11 @@ npm-debug.log*
 # Temporary files
 *.tmp
 *.temp
+
+# Cursor
+.cursor/
+
+# Cursor rules
+wp/.cursor/rules/
+
+claude.md

@@ -96,11 +96,10 @@ function mrhe_admin_get_auth_list()
         $where_values[] = (int)$_POST['status'];
     }
 
-    // 产品ID搜索改为通过产品标题搜索
+    // 产品ID筛选
     if (!empty($_POST['product_id'])) {
-        $product_keyword = '%' . $wpdb->esc_like($_POST['product_id']) . '%';
-        $where_conditions[] = "p.post_title LIKE %s";
-        $where_values[] = $product_keyword;
+        $where_conditions[] = "a.post_id = %d";
+        $where_values[] = $_POST['product_id'];
     }
 
     $where_clause = implode(' AND ', $where_conditions);
@@ -331,13 +330,12 @@ function mrhe_admin_add_auth()
         mrhe_admin_send_json(1, null, '该用户已存在此产品的授权记录');
     }
 
-    // 插入记录
+    // 插入记录（不再包含 product_id 字段）
     $result = $wpdb->insert(
         $table_name,
         [
             'user_id' => $user_id,
             'post_id' => $post_id,
-            'product_id' => $product_id,
             'auth_code' => $auth_code,
             'domain' => maybe_serialize($domains),
             'is_authorized' => $is_authorized,
@@ -345,7 +343,7 @@ function mrhe_admin_add_auth()
             'created_at' => current_time('mysql'),
             'updated_at' => current_time('mysql')
         ],
-        ['%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s']
+        ['%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s']
     );
 
     if ($result === false) {
