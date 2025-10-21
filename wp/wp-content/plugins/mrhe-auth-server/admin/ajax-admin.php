@@ -173,28 +173,42 @@ function mrhe_admin_get_products()
         mrhe_admin_send_json(1, null, '安全验证失败');
     }
 
+    // 获取使用 mrhe_pay.php 模板的页面
     $products = get_posts([
-        'post_type' => 'post',
+        'post_type' => 'page',
         'post_status' => 'publish',
         'meta_query' => [
             [
-                'key' => 'mrhe_product_purchase',
-                'value' => '',
-                'compare' => '!='
+                'key' => '_wp_page_template',
+                'value' => 'mrhe_pay.php',
+                'compare' => '='
             ]
         ],
-        'posts_per_page' => -1,
-        'fields' => 'ids'
+        'posts_per_page' => 50,
+        'orderby' => 'date',
+        'order' => 'DESC'
     ]);
 
     $result = [];
-    foreach ($products as $product_id) {
-        $meta = get_post_meta($product_id, 'mrhe_product_purchase', true);
-        if ($meta && is_array($meta) && !empty($meta['auth_enabled'])) {
+    foreach ($products as $product) {
+        // 检查是否启用了域名授权
+        $pay_meta = get_post_meta($product->ID, 'posts_zibpay', true);
+        $auth_enabled = false;
+        
+        if ($pay_meta && is_array($pay_meta)) {
+            // 检查是否启用了域名授权功能
+            $auth_enabled = !empty($pay_meta['auth_enabled']) || !empty($pay_meta['domain_auth_enabled']);
+        }
+        
+        // 只有启用了域名授权的产品才显示
+        if ($auth_enabled) {
             $result[] = [
-                'ID' => $product_id,
-                'post_title' => get_the_title($product_id),
-                'meta' => $meta
+                'ID' => $product->ID,
+                'post_title' => $product->post_title,
+                'meta' => [
+                    'product_id' => 'post_' . $product->ID,
+                    'auth_enabled' => true
+                ]
             ];
         }
     }
