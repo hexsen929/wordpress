@@ -20,17 +20,29 @@ if (!defined('ABSPATH')) {
  * 投诉功能相关
  */
 
+// 添加投诉侧边栏按钮
+function zibll_child_add_complaint_sidebar_button($buttons)
+{
+    $buttons[] = array(
+        'html' => '',
+        'icon' => zib_get_svg('reply'),
+        'name' => '我的投诉',
+        'tab'  => 'complaint',
+    );
+    return $buttons;
+}
+add_filter('zib_user_center_page_sidebar_button_1_args', 'zibll_child_add_complaint_sidebar_button', 50);
+
 // 添加投诉标签页
 function zibll_child_add_complaint_tab($tabs_array)
 {
-    if (!current_user_can('manage_options')) {
-        $tabs_array['complaint'] = array(
-            'title'         => '我的投诉',
-            'nav_attr'      => 'drawer-title="我的投诉进度"',
-            'content_class' => 'author-user-con',
-            'loader'   => '<div class="zib-widget"><div class="box-body notop nopw-sm"><div class="border-bottom box-body"><div style="width: 150px;" class="placeholder t1 mb10"></div><div class="placeholder t1"></div></div><div class="border-bottom box-body"><div style="width: 150px;" class="placeholder t1 mb10"></div><div class="placeholder t1"></div></div><div class="border-bottom box-body"><div style="width: 150px;" class="placeholder t1 mb10"></div><div class="placeholder t1"></div></div><div class="box-body nobottom"><div style="width: 150px;" class="placeholder t1"></div></div></div></div>',
-        );
-    }
+    // 所有登录用户都可以看到投诉标签页
+    $tabs_array['complaint'] = array(
+        'title'         => '我的投诉',
+        'nav_attr'      => 'drawer-title="我的投诉进度"',
+        'content_class' => 'author-user-con',
+        'loader'   => '<div class="zib-widget"><div class="box-body notop nopw-sm"><div class="border-bottom box-body"><div style="width: 150px;" class="placeholder t1 mb10"></div><div class="placeholder t1"></div></div><div class="border-bottom box-body"><div style="width: 150px;" class="placeholder t1 mb10"></div><div class="placeholder t1"></div></div><div class="border-bottom box-body"><div style="width: 150px;" class="placeholder t1 mb10"></div><div class="placeholder t1"></div></div><div class="box-body nobottom"><div style="width: 150px;" class="placeholder t1"></div></div></div></div>',
+    );
     return $tabs_array;
 }
 add_filter('user_ctnter_main_tabs_array', 'zibll_child_add_complaint_tab');
@@ -122,14 +134,3 @@ function zibll_child_complaint_content()
     return zib_get_ajax_ajaxpager_one_centent($html);
 }
 add_filter('main_user_tab_content_complaint', 'zibll_child_complaint_content');
-
-
-
-
-/**
- * 授权管理功能相关
- */
-
-// 注意：服务端JS文件已移至插件 mrhe-auth-server
-
-// 注意：服务端功能函数已移至插件 mrhe-auth-server
