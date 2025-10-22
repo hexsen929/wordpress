@@ -39,7 +39,6 @@ wp/.cursor/rules/*
 
 claude.md
 
-AIClient-2-API/*
-kiro2api/*
-
-AIClient-2-API
+# 忽略这两个独立的 Git 仓库
+AIClient-2-API/
+kiro2api/
