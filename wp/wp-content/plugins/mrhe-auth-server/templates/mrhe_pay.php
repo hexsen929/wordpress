@@ -55,9 +55,9 @@ $pay_mate = get_post_meta($post->ID, 'posts_zibpay', true);
                     </div>
                 </div><div class="payrow-6 payrow-right">
                     <div class="pay-content">
-                        <div class="product-header"><?php echo !empty($pay_mate['pay_title']) ? $pay_mate['pay_title'] : get_the_title(); ?></div>
+                        <div class="product-header"><?php echo !empty($pay_mate['pay_title']) ? esc_html($pay_mate['pay_title']) : esc_html(get_the_title()); ?></div>
                         <div class="product-doc">
-                            <?php echo $pay_mate['pay_doc']; ?>
+                            <?php echo wp_kses_post($pay_mate['pay_doc']); ?>
                         </div>
                         <?php echo zibpay_get_show_price($pay_mate, $post->ID, 'px13'); ?>
                         <form class="pay-form">

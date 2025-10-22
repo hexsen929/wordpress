@@ -60,27 +60,23 @@ function mrhe_auth_server_create_tables() {
     
     $charset_collate = $wpdb->get_charset_collate();
     
-    // 授权记录表
-    $table_name = $wpdb->prefix . 'mrhe_auth_records';
-    $sql = "CREATE TABLE $table_name (
-        id int(11) NOT NULL AUTO_INCREMENT,
-        user_id int(11) NOT NULL,
-        order_num varchar(100) NOT NULL,
-        post_id int(11) NOT NULL,
-        product_id varchar(100) NOT NULL,
-        auth_code varchar(255) NOT NULL,
-        domain text,
-        max_domains int(11) DEFAULT 3,
-        is_authorized tinyint(1) DEFAULT 0,
-        is_banned tinyint(1) DEFAULT 0,
+    // 授权记录表 - 统一使用 mrhe_theme_aut 表名
+    $table_name = $wpdb->prefix . 'mrhe_theme_aut';
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) NOT NULL COMMENT '购买用户ID',
+        post_id bigint(20) DEFAULT 0 COMMENT '产品页面ID',
+        auth_code varchar(255) NOT NULL COMMENT '授权码',
+        domain text COMMENT '授权域名列表（序列化数组）',
+        is_authorized tinyint(1) DEFAULT 1 COMMENT '是否已授权',
+        is_banned tinyint(1) DEFAULT 0 COMMENT '是否被封禁',
+        aut_max_url int(11) DEFAULT 3 COMMENT '最大可授权域名数',
         created_at datetime DEFAULT CURRENT_TIMESTAMP,
         updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
-        KEY user_id (user_id),
-        KEY order_num (order_num),
-        KEY post_id (post_id),
-        KEY product_id (product_id)
-    ) $charset_collate;";
+        UNIQUE KEY idx_user_post (user_id, post_id),
+        KEY idx_auth_code (auth_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='mrhe主题授权表' $charset_collate;";
     
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);

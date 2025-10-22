@@ -35,22 +35,32 @@ class MrheAuthServer
     }
 
     /**
-     * 检查请求频率限制
+     * 检查请求频率限制 - 改进版(多维度验证)
+     * @param string $domain 请求的域名
+     * @param string $product_id 产品ID
      * @return {array} 检查结果
      */
-    private function check_rate_limit()
+    private function check_rate_limit($domain = '', $product_id = '')
     {
         // 获取客户端IP
         $client_ip = $this->get_client_ip();
 
-        // 生成频率限制键
-        $rate_key = 'mrhe_auth_rate_' . md5($client_ip);
+        // 获取User-Agent
+        $user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? md5($_SERVER['HTTP_USER_AGENT']) : 'unknown';
 
-        // 获取当前请求次数
-        $requests = get_transient($rate_key);
+        // 生成多维度频率限制键
+        // 1. IP级别限制 - 防止单个IP大量请求
+        $ip_rate_key = 'mrhe_auth_rate_ip_' . md5($client_ip);
+        // 2. IP+UA级别限制 - 防止同一客户端频繁请求
+        $client_rate_key = 'mrhe_auth_rate_client_' . md5($client_ip . $user_agent);
+        // 3. IP+域名级别限制 - 防止针对特定域名的攻击
+        $domain_rate_key = 'mrhe_auth_rate_domain_' . md5($client_ip . $domain);
 
-        // 检查是否超过限制（每分钟最多10次）
-        if ($requests && $requests >= 10) {
+        // 检查IP级别限制（每分钟最多20次）
+        $ip_requests = get_transient($ip_rate_key);
+        if ($ip_requests && $ip_requests >= 20) {
+            // 记录可疑行为
+            error_log("MRHE授权频率限制: IP={$client_ip} 超过IP级别限制");
             return array(
                 'success' => false,
                 'code' => 'rate_limit',
@@ -58,8 +68,39 @@ class MrheAuthServer
             );
         }
 
-        // 增加请求计数（60秒过期）
-        set_transient($rate_key, ($requests ? $requests + 1 : 1), 60);
+        // 检查客户端级别限制（每分钟最多10次）
+        $client_requests = get_transient($client_rate_key);
+        if ($client_requests && $client_requests >= 10) {
+            // 记录可疑行为
+            error_log("MRHE授权频率限制: IP={$client_ip}, UA={$user_agent} 超过客户端级别限制");
+            return array(
+                'success' => false,
+                'code' => 'rate_limit',
+                'message' => '请求过于频繁，请稍后再试'
+            );
+        }
+
+        // 检查域名级别限制（每分钟最多5次）
+        if ($domain) {
+            $domain_requests = get_transient($domain_rate_key);
+            if ($domain_requests && $domain_requests >= 5) {
+                // 记录可疑行为
+                error_log("MRHE授权频率限制: IP={$client_ip}, Domain={$domain} 超过域名级别限制");
+                return array(
+                    'success' => false,
+                    'code' => 'rate_limit',
+                    'message' => '该域名请求过于频繁，请稍后再试'
+                );
+            }
+            // 增加域名级别计数
+            set_transient($domain_rate_key, ($domain_requests ? $domain_requests + 1 : 1), 60);
+        }
+
+        // 增加IP级别计数（60秒过期）
+        set_transient($ip_rate_key, ($ip_requests ? $ip_requests + 1 : 1), 60);
+
+        // 增加客户端级别计数（60秒过期）
+        set_transient($client_rate_key, ($client_requests ? $client_requests + 1 : 1), 60);
 
         return array('success' => true);
     }
@@ -145,13 +186,7 @@ class MrheAuthServer
      */
     public function verify_auth($request, $product_id = '', $auth_code = '')
     {
-        // 频率限制：防止暴力攻击
-        $rate_limit_result = $this->check_rate_limit();
-        if (!$rate_limit_result['success']) {
-            return $rate_limit_result;
-        }
-
-        // 兼容不同的调用方式
+        // 兼容不同的调用方式 - 先解析参数
         if (is_string($request)) {
             // 直接传递字符串参数：verify_auth($domain, $product_id, $auth_code)
             $domain = $request;
@@ -165,6 +200,12 @@ class MrheAuthServer
             $domain     = $request['domain'];
             $product_id = $request['product_id'];
             $auth_code  = isset($request['auth_code']) ? $request['auth_code'] : '';
+        }
+
+        // 频率限制：防止暴力攻击 - 传入域名和产品ID进行多维度限制
+        $rate_limit_result = $this->check_rate_limit($domain, $product_id);
+        if (!$rate_limit_result['success']) {
+            return $rate_limit_result;
         }
         
         //标准化域名
@@ -181,27 +222,53 @@ class MrheAuthServer
         global $wpdb;
         $table_name = $wpdb->prefix . 'mrhe_theme_aut';
         
-        //查询授权记录（先不限制 product_id）
+        // 查询授权记录 - 修复SQL注入漏洞并优化性能
         if ($auth_code) {
-            //通过授权码查询
+            // 通过授权码查询
             $auth_record = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $table_name WHERE auth_code = %s AND is_authorized = 1",
+                "SELECT * FROM $table_name WHERE auth_code = %s AND is_authorized = 1 AND is_banned = 0",
                 $auth_code
             ), ARRAY_A);
+
+            // 检查数据库错误
+            if ($wpdb->last_error) {
+                error_log('MRHE授权查询错误: ' . $wpdb->last_error);
+                return array(
+                    'success' => false,
+                    'code' => 'database_error',
+                    'message' => '数据库查询失败，请稍后重试'
+                );
+            }
         } else {
-            //通过域名查询 - 先查找所有授权记录，然后匹配 product_id 和域名
+            // 通过域名查询 - 使用LIKE查询优化性能
+            // 注意: 这里使用LIKE是因为domain字段存储的是序列化数组
             $auth_records = $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM $table_name WHERE is_authorized = 1",
+                "SELECT * FROM $table_name
+                 WHERE is_authorized = 1
+                 AND is_banned = 0
+                 AND domain LIKE %s
+                 LIMIT 50",
+                '%' . $wpdb->esc_like($clean_domain) . '%'
             ), ARRAY_A);
-            
+
+            // 检查数据库错误
+            if ($wpdb->last_error) {
+                error_log('MRHE授权查询错误: ' . $wpdb->last_error);
+                return array(
+                    'success' => false,
+                    'code' => 'database_error',
+                    'message' => '数据库查询失败，请稍后重试'
+                );
+            }
+
             $auth_record = null;
             foreach ($auth_records as $record) {
                 // 动态获取 product_id
                 $current_product_id = mrhe_get_dynamic_product_id($record['post_id'], $record['user_id']);
-                
+
                 // 检查 product_id 是否匹配
                 if ($current_product_id === $product_id) {
-                    // 检查域名是否匹配
+                    // 精确检查域名是否匹配（防止LIKE误匹配）
                     $domains = maybe_unserialize($record['domain']);
                     if (mrhe_domain_exists_in_list($clean_domain, $domains)) {
                         $auth_record = $record;

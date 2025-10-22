@@ -56,8 +56,12 @@ function zib_add_author_album_tab($tabs_array, $author_id)
     $display_type   = zibll_plugin_option('author_album_type', 'image_video');
 
     if ($is_super_admin) {
-        // 管理员：显示全站所有附件数量
-        $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->posts WHERE post_type='attachment' AND post_status='inherit'");
+        // 管理员：显示全站所有附件数量 - 修复SQL注入漏洞
+        $count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $wpdb->posts WHERE post_type=%s AND post_status=%s",
+            'attachment',
+            'inherit'
+        ));
     } else {
         // 非管理员：按设置的显示类别统计该作者的附件数量
         if ($display_type === 'image') {
@@ -228,8 +232,12 @@ function zib_main_author_tab_content_album()
 
     // 统计总数用于分页
     if ($is_super_admin) {
-        // 管理员：全站所有附件数量
-        $total_items = (int) $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->posts WHERE post_type='attachment' AND post_status='inherit'");
+        // 管理员：全站所有附件数量 - 修复SQL注入漏洞
+        $total_items = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $wpdb->posts WHERE post_type=%s AND post_status=%s",
+            'attachment',
+            'inherit'
+        ));
     } else {
         $display_type = zibll_plugin_option('author_album_type', 'image_video');
         if ($display_type === 'image') {

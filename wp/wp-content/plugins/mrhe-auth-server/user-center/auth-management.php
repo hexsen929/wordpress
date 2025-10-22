@@ -442,10 +442,27 @@ add_filter('main_user_tab_content_product', 'zib_main_user_tab_content_product',
 // 添加域名授权模态框
 function mrhe_aut_add_modal()
 {
-    $order_num = $_GET['mrhe_order_num'];
+    // 安全验证: 检查用户登录状态
     $user_id = get_current_user_id();
-    
+    if (!$user_id) {
+        display_error_message('请先登录');
+        wp_die();
+    }
+
+    // 安全验证: 清理和验证订单号
+    $order_num = isset($_GET['mrhe_order_num']) ? sanitize_text_field($_GET['mrhe_order_num']) : '';
+    if (empty($order_num)) {
+        display_error_message('订单号不能为空');
+        wp_die();
+    }
+
+    // 验证订单所有权
     $purchase_result = check_order_and_user($order_num);
+    if (!$purchase_result || $purchase_result['user_id'] != $user_id) {
+        display_error_message('无权访问此订单');
+        wp_die();
+    }
+
     $max_domains = $purchase_result['aut_max_url'];
     
     // 处理域名数据 - 使用WordPress标准方法
@@ -506,10 +523,26 @@ add_action('wp_ajax_mrhe_aut_add_modal', 'mrhe_aut_add_modal');
 // 更换域名授权模态框
 function mrhe_aut_replace_modal()
 {
-    $order_num = $_GET['mrhe_order_num'];
+    // 安全验证: 检查用户登录状态
     $user_id = get_current_user_id();
-    
+    if (!$user_id) {
+        display_error_message('请先登录');
+        wp_die();
+    }
+
+    // 安全验证: 清理和验证订单号
+    $order_num = isset($_GET['mrhe_order_num']) ? sanitize_text_field($_GET['mrhe_order_num']) : '';
+    if (empty($order_num)) {
+        display_error_message('订单号不能为空');
+        wp_die();
+    }
+
+    // 验证订单所有权
     $purchase_result = check_order_and_user($order_num);
+    if (!$purchase_result || $purchase_result['user_id'] != $user_id) {
+        display_error_message('无权访问此订单');
+        wp_die();
+    }
     
     // 处理域名数据 - 使用WordPress标准方法
     $existing_domains = maybe_unserialize($purchase_result['domain']);
