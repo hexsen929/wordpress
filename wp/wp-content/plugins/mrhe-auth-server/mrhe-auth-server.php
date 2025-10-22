@@ -89,10 +89,17 @@ function mrhe_auth_server_load_modules() {
         return;
     }
     
-    // 1. 加载工具函数
+    // 1. 加载基础类(优先加载)
+    require_once MRHE_AUTH_SERVER_DIR . 'includes/class-constants.php';
+    require_once MRHE_AUTH_SERVER_DIR . 'includes/class-response-handler.php';
+    require_once MRHE_AUTH_SERVER_DIR . 'includes/class-database-helper.php';
+    require_once MRHE_AUTH_SERVER_DIR . 'includes/class-auth-middleware.php';
+    require_once MRHE_AUTH_SERVER_DIR . 'includes/class-domain-helper.php';
+
+    // 2. 加载工具函数
     require_once MRHE_AUTH_SERVER_DIR . 'functions.php';
-    
-    // 2. 加载数据库模块（统一管理）
+
+    // 3. 加载数据库模块（统一管理）
     if (file_exists(MRHE_AUTH_SERVER_DIR . 'database/database.php')) {
         require_once MRHE_AUTH_SERVER_DIR . 'database/database.php';
     }
