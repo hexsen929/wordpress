@@ -16,6 +16,7 @@
 $require_once = array(
 	'mrhecode/options/options-module',
 	'mrhecode/options/options',
+	'mrhecode/attachment/options',             // 前端附件管理设置（提前加载以显示在顶部）
 	'mrhecode/options/action',
 	'mrhecode/widgets/widgets-index',
 	'mrhecode/function-mrhe',
@@ -23,7 +24,6 @@ $require_once = array(
 	// 'mrhecode/auth-management-functions', // 已移到插件 mrhe-auth-server
 	'mrhecode/attachment/attachment-manager',  // 前端附件管理功能
 	'mrhecode/attachment/user',                // 用户中心和作者相册
-	'mrhecode/attachment/options',             // 前端附件管理设置
 );
 
 foreach ($require_once as $require) {
